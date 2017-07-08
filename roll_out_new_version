@@ -1,0 +1,91 @@
+#!/usr/bin/env bash
+################################################################################
+PROGRAM=$(basename $0)
+read -r -d '' USAGE << EOM
+Create release sources based on existing one.
+
+Usage:
+  $PROGRAM -r VERSION
+  $PROGRAM [--help]
+
+Options:
+  -r, --release-version=VERSION     Specify release version.
+      --help                        Print help message.
+EOM
+
+
+################################################################################
+function show_usage_and_exit_with_code {
+  echo "$USAGE"
+  exit $1
+}
+
+
+function process_params {
+  if [[ "$1" = "--" ]]; then
+    show_usage_and_exit_with_code 1
+  fi
+
+  while true; do
+    case "$1" in
+        -r|--release-version)
+            RELEASE_VERSION=$(echo "$2" | tr '[:upper:]' '[:lower:]')
+            shift 2
+            ;;
+        -h|--help)
+            show_usage_and_exit_with_code 0
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            echo "Programming error"
+            exit 3
+            ;;
+    esac
+  done
+}
+
+
+function validate_release_version_is_specified {
+  if [[ "${RELEASE_VERSION}x" = "x" ]]; then
+    echo "Error: Release version is not specified"
+    exit 1
+  fi
+}
+
+function validate_input {
+  validate_release_version_is_specified
+}
+################################################################################
+getopt --test > /dev/null
+if [[ $? -ne 4 ]]; then
+    echo "I’m sorry, `getopt --test` failed in this environment."
+    exit 1
+fi
+
+SHORT="r:"
+LONG="release-version:,help"
+PARSED=$(getopt --options $SHORT --longoptions $LONG --name "$0" -- "$@")
+
+
+if [[ $? -ne 0 ]]; then
+    # e.g. $? == 1
+    #  then getopt has complained about wrong arguments to stdout
+    exit 2
+fi
+
+# Flat out parsed params into list of arguments
+eval set -- "$PARSED"
+################################################################################
+
+process_params $@
+validate_input
+cp -r xenial $RELEASE_VERSION
+
+TARGET_FILE="${RELEASE_VERSION}/Dockerfile"
+sed -i -r \
+    -e "s/ubuntu:xenial/ubuntu:${RELEASE_VERSION}/g" \
+    -e "s/version=\S*/version=\"$(date +"%F")\"/g" \
+    ${TARGET_FILE}
