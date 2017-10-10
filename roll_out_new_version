@@ -82,10 +82,11 @@ eval set -- "$PARSED"
 
 process_params $@
 validate_input
-cp -r xenial $RELEASE_VERSION
+cp -r 16.04 $RELEASE_VERSION
 
 TARGET_FILE="${RELEASE_VERSION}/Dockerfile"
 sed -i -r \
-    -e "s/ubuntu:xenial/ubuntu:${RELEASE_VERSION}/g" \
+    -e "s/ubuntu:16.04/ubuntu:${RELEASE_VERSION}/g" \
+    -e "s/Ubuntu 16.04/Ubuntu ${RELEASE_VERSION}/g" \
     -e "s/version=\S*/version=\"$(date +"%F")\"/g" \
     ${TARGET_FILE}
